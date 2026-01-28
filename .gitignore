@@ -1,0 +1,10 @@
+# OS files
+.DS_Store
+
+# Python virtual environments
+.venv/
+backend/.venv/
+
+# Python cache files
+__pycache__/
+backend/__pycache__/
