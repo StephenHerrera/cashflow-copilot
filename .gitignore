@@ -8,3 +8,6 @@ backend/.venv/
 # Python cache files
 __pycache__/
 backend/__pycache__/
+
+# Local SQLite database
+backend/cashflow.db
