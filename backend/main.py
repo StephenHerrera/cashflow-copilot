@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from database import engine, Base, SessionLocal
-from models import TransactionDB, BudgetDB
+from .database import engine, Base, SessionLocal
+from .models import TransactionDB, BudgetDB
 from datetime import date, datetime
 
 # Main server object that will handle incoming requests
@@ -211,6 +211,7 @@ def get_summary(month: str | None = None):
         "over_budget": over_budget
     }
 
+# Monthly trend endpoint
 @app.get("/trend")
 def get_trend(months: int | None = None):
     db = get_db()
@@ -244,6 +245,7 @@ def get_trend(months: int | None = None):
             "net": income - expenses
         })
 
+    # Allow filtering for a certain amount of months
     if months:
         result = result[-months:]
 

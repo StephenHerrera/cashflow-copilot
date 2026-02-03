@@ -3,11 +3,23 @@
 
 # Python virtual environments
 .venv/
-backend/.venv/
+venv/
+.env
 
-# Python cache files
+# Python cache/compiled files
 __pycache__/
-backend/__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # Local SQLite database
 backend/cashflow.db
+cashflow_test.db
+cashflow.db
+
+# Pytest / testing cache
+.pytest_cache/
+
+# Editor / IDE settings
+.vscode/
+.idea/
