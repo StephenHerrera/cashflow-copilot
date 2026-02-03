@@ -1,7 +1,10 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = "sqlite:///./cashflow.db"
+# If DATABASE_URL is set (in tests), use it.
+# Otherwise default to normal database.
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./cashflow.db")
 
 engine = create_engine(
     DATABASE_URL,
