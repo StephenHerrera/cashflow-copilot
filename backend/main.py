@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import Optional
 from .database import engine, Base, SessionLocal
 from .models import TransactionDB, BudgetDB
 from datetime import date, datetime
@@ -17,7 +18,7 @@ Base.metadata.create_all(bind=engine)
 class Transaction(BaseModel):
     amount: float
     description: str
-    category: str
+    category: Optional[str] = None
     date: date
 
 # Creating data model to only accept valid input from the user
@@ -60,11 +61,20 @@ def get_transactions():
 def add_transaction(transaction: Transaction):
     db = get_db()
 
+    # Auto-categorize if category is missing or blank
+    category = transaction.category
+    if category is None or not category.strip():
+        cat_result = categorize_transaction(transaction.description, transaction.amount)
+        category = cat_result.category
+    else:
+        # Normalize user-provided category
+        category = category.strip().lower()
+
     # Create a new database row using validated input data
     new_transaction = TransactionDB(
         amount=transaction.amount,
         description=transaction.description,
-        category=transaction.category,
+        category=category,
         date=transaction.date
     )
 
@@ -77,6 +87,7 @@ def add_transaction(transaction: Transaction):
         "message": "Transaction added",
         "id": new_transaction.id
     }
+
 @app.get("/budgets")
 def get_budgets(month: str | None = None):
     db = get_db()
