@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from .database import engine, Base, SessionLocal
 from .models import TransactionDB, BudgetDB
 from datetime import date, datetime
+from .categorization import categorize_transaction
+from .schemas import CategorizeRequest, CategorizeResponse
 
 # Main server object that will handle incoming requests
 app = FastAPI()
@@ -250,3 +252,14 @@ def get_trend(months: int | None = None):
         result = result[-months:]
 
     return result
+
+# Returns a suggested category 
+@app.post("/categorize", response_model=CategorizeResponse)
+def categorize(payload: CategorizeRequest):
+    result = categorize_transaction(payload.description, payload.amount)
+
+    return CategorizeResponse(
+        category=result.category,
+        confidence=result.confidence,
+        method=result.method,
+    )
