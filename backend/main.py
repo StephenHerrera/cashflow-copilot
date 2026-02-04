@@ -5,6 +5,7 @@ from .models import TransactionDB, BudgetDB
 from datetime import date, datetime
 from .categorization import categorize_transaction
 from .schemas import CategorizeRequest, CategorizeResponse
+from .ai_categorizer import ai_categorize_transaction
 
 # Main server object that will handle incoming requests
 app = FastAPI()
@@ -253,13 +254,25 @@ def get_trend(months: int | None = None):
 
     return result
 
-# Returns a suggested category 
+# Returns a suggested category - Rules based first / fallbacks to AI 
 @app.post("/categorize", response_model=CategorizeResponse)
 def categorize(payload: CategorizeRequest):
-    result = categorize_transaction(payload.description, payload.amount)
+    # 1) Rules-first
+    rules_result = categorize_transaction(payload.description, payload.amount)
+
+    # If rules matched, return immediately
+    if rules_result.category != "uncategorized":
+        return CategorizeResponse(
+            category=rules_result.category,
+            confidence=rules_result.confidence,
+            method=rules_result.method,
+        )
+
+    # 2) AI fallback only if rules couldn't decide
+    ai_result = ai_categorize_transaction(payload.description, payload.amount)
 
     return CategorizeResponse(
-        category=result.category,
-        confidence=result.confidence,
-        method=result.method,
+        category=ai_result.category,
+        confidence=ai_result.confidence,
+        method=ai_result.method,
     )

@@ -12,26 +12,37 @@ class CategorizationResult:
 
 # Keyword-Based Rules
 KEYWORD_TO_CATEGORY = {
-    # Coffee
+    # coffee
     "starbucks": "coffee",
     "dunkin": "coffee",
+    "coffee": "coffee",
 
-    # Groceries / Retail
+    # groceries / retail
     "walmart": "groceries",
     "target": "groceries",
-    "costco": "groceries",
+    "aldi": "groceries",
+    "costco" : "groceries",
 
-    # Transport
+    # transport
     "uber": "transport",
     "lyft": "transport",
+    "shell": "gas",
+    "exxon": "gas",
 
-    # Utilities
+    # food
+    "mcdonald": "food",
+    "chipotle": "food",
+    "restaurant": "food",
+
+    # utilities
     "duke energy": "utilities",
     "spectrum": "utilities",
     "verizon": "utilities",
+    "at&t": "utilities",
 
-    # Rent / Housing
+    # rent/housing
     "rent": "rent",
+    "apartment": "rent",
 }
 
 # Normalizes transaction description for consistent matching.
