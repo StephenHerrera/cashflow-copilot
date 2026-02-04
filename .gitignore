@@ -23,3 +23,11 @@ cashflow.db
 # Editor / IDE settings
 .vscode/
 .idea/
+
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcuserdata/
+*.xccheckout
+*.moved-aside
+*.xcworkspace/xcuserdata/
