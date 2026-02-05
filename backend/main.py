@@ -27,6 +27,19 @@ class Budget(BaseModel):
     category: str
     limit_amount: float
 
+# Creating data model to only accept valid input from the user
+class TransactionUpdate(BaseModel):
+    amount: float
+    description: str
+    category: str
+    date: date
+
+# Creating data model to only accept valid input from the user
+class BudgetUpdate(BaseModel):
+    month: str
+    category: str
+    limit_amount: float
+
 # Creates a new database session
 def get_db():
     return SessionLocal()
@@ -88,6 +101,41 @@ def add_transaction(transaction: Transaction):
         "id": new_transaction.id
     }
 
+@app.delete("/transactions/{transaction_id}")
+def delete_transaction(transaction_id: int):
+    db = get_db()
+
+    tx = db.query(TransactionDB).filter(TransactionDB.id == transaction_id).first()
+    if not tx:
+        db.close()
+        return {"error": "Transaction not found"}
+
+    db.delete(tx)
+    db.commit()
+    db.close()
+
+    return {"message": "Transaction deleted"}
+
+
+@app.put("/transactions/{transaction_id}")
+def update_transaction(transaction_id: int, updated: TransactionUpdate):
+    db = get_db()
+
+    tx = db.query(TransactionDB).filter(TransactionDB.id == transaction_id).first()
+    if not tx:
+        db.close()
+        return {"error": "Transaction not found"}
+
+    tx.amount = updated.amount
+    tx.description = updated.description
+    tx.category = updated.category.strip().lower()
+    tx.date = updated.date
+
+    db.commit()
+    db.close()
+
+    return {"message": "Transaction updated"}
+
 @app.get("/budgets")
 def get_budgets(month: str | None = None):
     db = get_db()
@@ -146,6 +194,49 @@ def set_budget(budget: Budget):
     db.close()
 
     return {"message": "Budget created", "id": new_budget.id}
+
+@app.delete("/budgets/{budget_id}")
+def delete_budget(budget_id: int):
+    db = get_db()
+
+    budget = db.query(BudgetDB).filter(BudgetDB.id == budget_id).first()
+    if not budget:
+        db.close()
+        return {"error": "Budget not found"}
+
+    db.delete(budget)
+    db.commit()
+    db.close()
+
+    return {"message": "Budget deleted"}
+
+@app.put("/budgets/{budget_id}")
+def update_budget(budget_id: int, updated: BudgetUpdate):
+    db = get_db()
+
+    budget = db.query(BudgetDB).filter(BudgetDB.id == budget_id).first()
+    if not budget:
+        db.close()
+        return {"error": "Budget not found"}
+
+    month = updated.month.strip()
+    category = updated.category.strip().lower()
+
+    # Validate month format (must be YYYY-MM)
+    try:
+        datetime.strptime(month, "%Y-%m")
+    except ValueError:
+        db.close()
+        return {"error": "Month must be in YYYY-MM format (example: 2026-02)"}
+
+    budget.month = month
+    budget.category = category
+    budget.limit_amount = updated.limit_amount
+
+    db.commit()
+    db.close()
+
+    return {"message": "Budget updated"}
 
 # Display summary of of all transaction
 @app.get("/summary")
