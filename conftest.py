@@ -4,6 +4,8 @@ from backend.database import Base, engine
 
 # Force tests to use separate DB
 os.environ["DATABASE_URL"] = "sqlite:///./cashflow_test.db"
+os.environ["ENABLE_AI_CATEGORIZATION"] = "false"
+os.environ.pop("OPENAI_API_KEY", None)
 
 
 @pytest.fixture(autouse=True)
