@@ -35,6 +35,13 @@ enum APIError: Error, LocalizedError {
     }
 }
 
+struct UpdateTransactionRequest: Codable {
+    let amount: Double
+    let description: String
+    let category: String
+    let date: String // "YYYY-MM-DD"
+}
+
 final class APIClient {
     static let shared = APIClient()
     private init() {}
@@ -173,4 +180,37 @@ final class APIClient {
             throw APIError.requestFailed(http.statusCode)
         }
     }
+    
+    func deleteTransaction(id: Int) async throws {
+        guard let url = URL(string: "\(APIConfig.baseURL)/transactions/\(id)") else {
+            throw APIError.invalidURL
+        }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "DELETE"
+
+        let (_, response) = try await URLSession.shared.data(for: req)
+
+        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw APIError.requestFailed(http.statusCode)
+        }
+    }
+
+    func updateTransaction(id: Int, request: UpdateTransactionRequest) async throws {
+        guard let url = URL(string: "\(APIConfig.baseURL)/transactions/\(id)") else {
+            throw APIError.invalidURL
+        }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "PUT"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONEncoder().encode(request)
+
+        let (_, response) = try await URLSession.shared.data(for: req)
+
+        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw APIError.requestFailed(http.statusCode)
+        }
+    }
+    
 }

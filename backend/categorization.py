@@ -43,6 +43,11 @@ KEYWORD_TO_CATEGORY = {
     # rent/housing
     "rent": "rent",
     "apartment": "rent",
+
+    # income
+    "paycheck" : "income",
+    "paystub" : "income",
+    "earning" : "income"
 }
 
 # Normalizes transaction description for consistent matching.
