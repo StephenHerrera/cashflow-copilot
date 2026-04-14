@@ -1,29 +1,68 @@
-//
-//  MonthPickerRow.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
-
 import SwiftUI
 
 struct MonthPickerRow: View {
-    let title: String
-    @Binding var selected: String
-    let options: [String]
+    private let selectedMonth: Binding<String>
+    private let months: [String]
+    private let defaultMonth: String
+    private let onMonthChanged: (String) -> Void
+
+    @State private var internalMonth: String
+
+    init(
+        selectedMonth: Binding<String>,
+        months: [String] = lastNMonthsOptions(),
+        defaultMonth: String = currentMonthString(),
+        onMonthChanged: @escaping (String) -> Void = { _ in }
+    ) {
+        self.selectedMonth = selectedMonth
+        self.months = months
+        self.defaultMonth = defaultMonth
+        self.onMonthChanged = onMonthChanged
+        _internalMonth = State(initialValue: defaultMonth)
+    }
+
+    // legacy initializer: MonthPickerRow(months, defaultMonth, onChange)
+    init(
+        _ months: [String],
+        _ defaultMonth: String,
+        _ onMonthChanged: @escaping (String) -> Void
+    ) {
+        self.months = months
+        self.defaultMonth = defaultMonth
+        self.onMonthChanged = onMonthChanged
+
+        let state = State(initialValue: defaultMonth)
+        self._internalMonth = state
+        self.selectedMonth = state.projectedValue
+    }
 
     var body: some View {
         HStack {
-            Text(title)
+            Text("Month")
                 .foregroundStyle(.secondary)
+
             Spacer()
 
-            Picker(title, selection: $selected) {
-                ForEach(options, id: \.self) { m in
-                    Text(UIMonth(m)).tag(m)
+            Picker("Month", selection: selectedMonth) {
+                ForEach(months, id: \.self) { m in
+                    Text(prettyMonth(m))
+                        .tag(m)
                 }
             }
-            .pickerStyle(.menu) // dropdown
+            .pickerStyle(.menu)
+            .onChange(of: selectedMonth.wrappedValue) { _, newValue in
+                onMonthChanged(newValue)
+            }
+
+            Button {
+                selectedMonth.wrappedValue = defaultMonth
+                onMonthChanged(defaultMonth)
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .padding(.leading, 6)
         }
     }
 }

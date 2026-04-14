@@ -1,10 +1,3 @@
-//
-//  TransactionRow.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
-
 import SwiftUI
 
 struct TransactionRow: View {
@@ -33,14 +26,12 @@ struct TransactionRow: View {
                 Text(formatCurrency(tx.amount))
                     .font(.headline)
                     .monospacedDigit()
-                    .foregroundStyle(tx.amount >= 0 ? AppTheme.income : AppTheme.danger)
+                    .foregroundStyle(tx.amount >= 0 ? AppTheme.income : AppTheme.expense)
             }
         }
     }
 
     private func prettyDate(_ iso: String) -> String {
-        // Your backend sends "YYYY-MM-DD"
-        // We'll display it as "Feb 5"
         let input = DateFormatter()
         input.dateFormat = "yyyy-MM-dd"
 

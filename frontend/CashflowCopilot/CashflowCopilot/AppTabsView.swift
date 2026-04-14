@@ -1,9 +1,3 @@
-//
-//  AppTabsView.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
 import SwiftUI
 
 struct AppTabsView: View {

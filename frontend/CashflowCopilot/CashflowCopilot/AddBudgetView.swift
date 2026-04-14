@@ -1,10 +1,3 @@
-//
-//  AddBudgetView.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
-
 import SwiftUI
 
 struct AddBudgetView: View {
@@ -20,6 +13,8 @@ struct AddBudgetView: View {
     @State private var isSaving = false
     @State private var errorText: String?
 
+    private let monthOptions = lastNMonthsOptions(12)
+
     init(defaultMonth: String, onSaved: (() -> Void)? = nil) {
         self.defaultMonth = defaultMonth
         self.onSaved = onSaved
@@ -30,11 +25,11 @@ struct AddBudgetView: View {
         NavigationStack {
             Form {
                 Section("Month") {
-                    Text(UIMonth(month))
-                        .foregroundStyle(.secondary)
-                    TextField("YYYY-MM (example: 2026-02)", text: $month)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    Picker("Month", selection: $month) {
+                        ForEach(monthOptions, id: \.self) { m in
+                            Text(prettyMonth(m)).tag(m)
+                        }
+                    }
                 }
 
                 Section("Budget") {
@@ -55,14 +50,14 @@ struct AddBudgetView: View {
             }
             .navigationTitle("Add Budget")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(isSaving ? "Saving..." : "Save") {
                         Task { await save() }
                     }
-                    .disabled(isSaving)
+                    .disabled(isSaving || category.trimmed.isEmpty || limitAmount.trimmed.isEmpty)
                 }
             }
         }
@@ -71,12 +66,12 @@ struct AddBudgetView: View {
     private func save() async {
         errorText = nil
 
-        guard !category.trimmingCharacters(in: .whitespaces).isEmpty else {
+        guard !category.trimmed.isEmpty else {
             errorText = "Please enter a category."
             return
         }
 
-        guard let limit = Double(limitAmount) else {
+        guard let limit = Double(limitAmount.trimmed) else {
             errorText = "Limit must be a number."
             return
         }
@@ -88,7 +83,7 @@ struct AddBudgetView: View {
             try await APIClient.shared.createOrUpdateBudget(
                 request: CreateBudgetRequest(
                     month: month,
-                    category: category,
+                    category: category.trimmed.lowercased(),
                     limit_amount: limit
                 )
             )

@@ -1,13 +1,5 @@
-//
-//  UIHelpers.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
-
 import SwiftUI
 
-// Reusable "card" container
 struct Card<Content: View>: View {
     let title: String?
     let content: Content
@@ -32,13 +24,19 @@ struct Card<Content: View>: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(.quaternary, lineWidth: 1)
         )
+        .shadow(radius: 2, y: 1)
     }
 }
 
-// Currency formatting helper
+enum Currency {
+    static let formatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.maximumFractionDigits = 2
+        return f
+    }()
+}
+
 func formatCurrency(_ value: Double) -> String {
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .currency
-    formatter.maximumFractionDigits = 2
-    return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
+    Currency.formatter.string(from: NSNumber(value: value)) ?? "$0.00"
 }

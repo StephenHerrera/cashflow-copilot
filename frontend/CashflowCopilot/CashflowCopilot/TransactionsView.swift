@@ -10,14 +10,12 @@ struct TransactionsView: View {
 
     @State private var showingAddSheet = false
 
-    // ✅ Edit sheet state
     @State private var showingEditSheet = false
     @State private var selectedTransaction: TransactionItem?
 
     var body: some View {
         NavigationStack {
             List {
-                // Controls card (search + dropdown)
                 Section {
                     Card(title: "Browse") {
                         TextField("Search description...", text: $searchText)
@@ -37,7 +35,7 @@ struct TransactionsView: View {
                             .pickerStyle(.menu)
                         }
                     }
-                    .listRowInsets(EdgeInsets())   // makes Card full-width
+                    .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                 }
 
@@ -64,7 +62,6 @@ struct TransactionsView: View {
                     }
                 }
 
-                // ✅ Transaction rows with swipe actions
                 Section {
                     if filteredTransactions.isEmpty && !isLoading {
                         Card {
@@ -80,14 +77,12 @@ struct TransactionsView: View {
                                 .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                                 .listRowBackground(Color.clear)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    // Delete (full swipe)
                                     Button(role: .destructive) {
                                         Task { await delete(tx) }
                                     } label: {
                                         Label("Delete", systemImage: "trash")
                                     }
 
-                                    // Edit (swipe then tap)
                                     Button {
                                         selectedTransaction = tx
                                         showingEditSheet = true
@@ -110,18 +105,13 @@ struct TransactionsView: View {
                         Image(systemName: "plus")
                     }
                 }
-
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Refresh") {
-                        Task { await loadTransactions() }
-                    }
-                }
             }
+            .refreshable { await loadTransactions() }
+            .task { await loadTransactions() }
         }
         .sheet(isPresented: $showingAddSheet) {
             AddTransactionView()
         }
-        // ✅ Edit sheet goes HERE (outer container modifier)
         .sheet(isPresented: $showingEditSheet) {
             if let selectedTransaction {
                 EditTransactionView(transaction: selectedTransaction) {
@@ -129,22 +119,18 @@ struct TransactionsView: View {
                 }
             }
         }
-        .task { await loadTransactions() }
     }
 
     private var filteredTransactions: [TransactionItem] {
         var result = transactions
 
         switch filter {
-        case .all:
-            break
-        case .income:
-            result = result.filter { $0.amount >= 0 }
-        case .expenses:
-            result = result.filter { $0.amount < 0 }
+        case .all: break
+        case .income: result = result.filter { $0.amount >= 0 }
+        case .expenses: result = result.filter { $0.amount < 0 }
         }
 
-        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let q = searchText.trimmed.lowercased()
         if !q.isEmpty {
             result = result.filter { $0.description.lowercased().contains(q) }
         }

@@ -1,76 +1,81 @@
-//
-//  AddTransactionView.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/4/26.
-//
-
 import SwiftUI
 
 struct AddTransactionView: View {
-    @Environment(\.dismiss) var dismiss
-
+    @Environment(\.dismiss) private var dismiss
+    
     @State private var description = ""
+    @State private var category = ""
     @State private var amount = ""
+    @State private var date = Date()
+    
     @State private var isSaving = false
     @State private var errorText: String?
-
+    
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Description", text: $description)
-
-                TextField("Amount", text: $amount)
-                    .keyboardType(.decimalPad)
-
+                Section("Details") {
+                    TextField("Description", text: $description)
+                    
+                    TextField("Category (optional)", text: $category)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    
+                    TextField("Amount (ex: -12.50)", text: $amount)
+                        .keyboardType(.decimalPad)
+                    
+                    DatePicker("Date", selection: $date, displayedComponents: [.date])
+                }
+                
                 if let errorText {
-                    Text(errorText)
-                        .foregroundStyle(.red)
+                    Section {
+                        Text(errorText)
+                            .foregroundStyle(.red)
+                    }
                 }
             }
             .navigationTitle("Add Transaction")
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(isSaving ? "Saving..." : "Save") {
                         Task { await saveTransaction() }
                     }
-                    .disabled(isSaving)
-                }
-
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    .disabled(isSaving || description.trimmed.isEmpty || amount.trimmed.isEmpty)
                 }
             }
         }
     }
-
+    
     private func saveTransaction() async {
-        guard let amountValue = Double(amount) else {
-            errorText = "Invalid amount."
+        guard let amountValue = Double(amount.trimmed) else {
+            errorText = "Amount must be a number."
             return
         }
-
+        
         isSaving = true
         errorText = nil
-
-        let today = ISO8601DateFormatter().string(from: Date())
-            .prefix(10) // gives YYYY-MM-DD
-
+        
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        
         let request = CreateTransactionRequest(
             amount: amountValue,
-            description: description,
-            date: String(today)
+            description: description.trimmed,
+            category: category.trimmed.isEmpty ? nil : category.trimmed.lowercased(),
+            date: df.string(from: date)
         )
-
+        
         do {
             try await APIClient.shared.createTransaction(request: request)
             dismiss()
         } catch {
             errorText = error.localizedDescription
         }
-
+        
         isSaving = false
     }
 }

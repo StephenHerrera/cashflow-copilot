@@ -1,10 +1,3 @@
-//
-//  EditTransactionView.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
-
 import SwiftUI
 
 struct EditTransactionView: View {
@@ -16,7 +9,7 @@ struct EditTransactionView: View {
     @State private var amountText: String = ""
     @State private var descriptionText: String = ""
     @State private var categoryText: String = ""
-    @State private var dateText: String = "" // YYYY-MM-DD
+    @State private var dateValue: Date = Date()
 
     @State private var isSaving = false
     @State private var errorText: String?
@@ -26,14 +19,15 @@ struct EditTransactionView: View {
             Form {
                 Section("Details") {
                     TextField("Description", text: $descriptionText)
-                    TextField("Category (ex: groceries)", text: $categoryText)
+
+                    TextField("Category", text: $categoryText)
                         .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
 
                     TextField("Amount (ex: -12.50)", text: $amountText)
                         .keyboardType(.decimalPad)
 
-                    TextField("Date (YYYY-MM-DD)", text: $dateText)
-                        .textInputAutocapitalization(.never)
+                    DatePicker("Date", selection: $dateValue, displayedComponents: [.date])
                 }
 
                 if let errorText {
@@ -44,11 +38,11 @@ struct EditTransactionView: View {
             }
             .navigationTitle("Edit Transaction")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(isSaving ? "Saving..." : "Save") {
                         Task { await save() }
                     }
@@ -59,26 +53,44 @@ struct EditTransactionView: View {
                 amountText = String(transaction.amount)
                 descriptionText = transaction.description
                 categoryText = transaction.category
-                dateText = transaction.date
+
+                let df = DateFormatter()
+                df.dateFormat = "yyyy-MM-dd"
+                if let d = df.date(from: transaction.date) {
+                    dateValue = d
+                }
             }
         }
     }
 
     private func save() async {
-        isSaving = true
         errorText = nil
 
-        guard let amount = Double(amountText) else {
+        guard let amount = Double(amountText.trimmed) else {
             errorText = "Amount must be a number."
-            isSaving = false
             return
         }
 
+        if descriptionText.trimmed.isEmpty {
+            errorText = "Description is required."
+            return
+        }
+
+        if categoryText.trimmed.isEmpty {
+            errorText = "Category is required."
+            return
+        }
+
+        isSaving = true
+
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+
         let req = UpdateTransactionRequest(
             amount: amount,
-            description: descriptionText,
-            category: categoryText,
-            date: dateText
+            description: descriptionText.trimmed,
+            category: categoryText.trimmed.lowercased(),
+            date: df.string(from: dateValue)
         )
 
         do {

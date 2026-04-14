@@ -1,10 +1,3 @@
-//
-//  SummaryView.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
-
 import SwiftUI
 
 struct SummaryView: View {
@@ -15,7 +8,6 @@ struct SummaryView: View {
     @State private var isLoading = false
     @State private var errorText: String?
 
-    // Collapsible toggles
     @State private var showTotals = true
     @State private var showOverBudget = true
     @State private var showByCategory = false
@@ -26,9 +18,8 @@ struct SummaryView: View {
             ScrollView {
                 VStack(spacing: 16) {
 
-                    // Month dropdown + load button
                     Card(title: "Month") {
-                        MonthPickerRow(title: "Selected", selected: $month, options: monthOptions)
+                        MonthPickerRow(selectedMonth: $month, months: monthOptions)
 
                         Button {
                             Task { await loadSummary() }
@@ -53,7 +44,6 @@ struct SummaryView: View {
                     }
 
                     if let summary {
-                        // Totals (collapsible)
                         Card {
                             DisclosureGroup(isExpanded: $showTotals) {
                                 VStack(spacing: 10) {
@@ -74,7 +64,6 @@ struct SummaryView: View {
                             }
                         }
 
-                        // Over budget (collapsible)
                         Card {
                             DisclosureGroup(isExpanded: $showOverBudget) {
                                 if summary.over_budget.isEmpty {
@@ -92,7 +81,6 @@ struct SummaryView: View {
                             }
                         }
 
-                        // By Category (collapsible)
                         Card {
                             DisclosureGroup(isExpanded: $showByCategory) {
                                 VStack(spacing: 10) {
@@ -113,23 +101,23 @@ struct SummaryView: View {
                             }
                         }
 
-                        // Budget Status (collapsible) — shows spent/limit/% used
                         Card {
                             DisclosureGroup(isExpanded: $showBudgetStatus) {
                                 if summary.budget_status.isEmpty {
-                                    Text("No budgets set for \(UIMonth(month)).")
+                                    Text("No budgets set for \(prettyMonth(month)).")
                                         .foregroundStyle(.secondary)
                                         .padding(.top, 6)
                                 } else {
                                     VStack(spacing: 12) {
                                         ForEach(summary.budget_status.keys.sorted(), id: \.self) { key in
-                                            let b = summary.budget_status[key]!
-                                            BudgetStatusRow(
-                                                category: key,
-                                                spent: b.spent,
-                                                limit: b.limit,
-                                                percentageUsed: b.percentage_used
-                                            )
+                                            if let b = summary.budget_status[key] {
+                                                BudgetStatusRow(
+                                                    category: key,
+                                                    spent: b.spent,
+                                                    limit: b.limit,
+                                                    percentageUsed: b.percentage_used
+                                                )
+                                            }
                                         }
                                     }
                                     .padding(.top, 6)
@@ -150,6 +138,11 @@ struct SummaryView: View {
                 .padding()
             }
             .navigationTitle("Summary")
+            .refreshable { await loadSummary() }
+            .task { await loadSummary() }
+            .onChange(of: month) { _, _ in
+                Task { await loadSummary() }
+            }
         }
     }
 

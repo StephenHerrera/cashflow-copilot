@@ -1,19 +1,13 @@
-//
-//  APIConfig.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/4/26.
-//
-
 import Foundation
 
 enum APIConfig {
-    // Start with simulator. We'll switch to iPhone later.
+    // ✅ Simulator can hit localhost
     static let simulatorBaseURL = "http://127.0.0.1:8000"
 
-    // Later you'll replace YOUR_MAC_IP_HERE with your Mac's IP for physical iPhone.
-    static let iphoneBaseURL = "http://172.24.30.59"
+    // ✅ Physical iPhone must hit your Mac’s LAN IP + port
+    // Example: http://192.168.1.50:8000
+    static let iphoneBaseURL = "http://172.24.30.59:8000"
 
-    // For now, keep this as simulatorBaseURL
+    // Switch when needed:
     static var baseURL: String = simulatorBaseURL
 }
