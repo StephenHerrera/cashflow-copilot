@@ -2,8 +2,6 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var month: String = currentMonthString()
-    private let monthOptions = lastNMonthsOptions(12)
-
     @State private var summary: SummaryResponse?
     @State private var isLoading = false
     @State private var errorText: String?
@@ -16,7 +14,7 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 16) {
 
-                    // Brand header
+                    // MARK: - Header
                     ZStack(alignment: .bottomLeading) {
                         LinearGradient(
                             colors: [AppTheme.primary.opacity(0.9), AppTheme.primary.opacity(0.25)],
@@ -26,7 +24,7 @@ struct HomeView: View {
                         .frame(height: 160)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
 
-                        VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("Cashflow Copilot")
                                 .font(.title)
                                 .bold()
@@ -36,7 +34,7 @@ struct HomeView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.white.opacity(0.9))
 
-                            HStack(spacing: 10) {
+                            HStack(spacing: 8) {
                                 Pill(text: prettyMonth(month))
                                     .foregroundStyle(.white)
 
@@ -52,19 +50,31 @@ struct HomeView: View {
                         .padding()
                     }
 
-                    // Month selection
+                    // MARK: - Month Picker
                     Card(title: "Month") {
-                        MonthPickerRow(selectedMonth: $month, months: monthOptions)
+                        MonthPickerRow(
+                            title: "Month",
+                            selectedMonth: $month
+                        ) { newMonth in
+                            Task {
+                                month = newMonth
+                                await load()
+                            }
+                        }
                     }
 
-                    // Quick Actions
+                    // MARK: - Quick Actions (FIXED)
                     Card(title: "Quick Actions") {
                         HStack(spacing: 12) {
+
                             Button {
                                 showingAddTransaction = true
                             } label: {
                                 Label("Add Transaction", systemImage: "plus.circle.fill")
+                                    .labelStyle(.titleAndIcon)
                                     .frame(maxWidth: .infinity)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
                             }
                             .buttonStyle(.borderedProminent)
 
@@ -72,12 +82,16 @@ struct HomeView: View {
                                 showingAddBudget = true
                             } label: {
                                 Label("Add Budget", systemImage: "target")
+                                    .labelStyle(.titleAndIcon)
                                     .frame(maxWidth: .infinity)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
                             }
                             .buttonStyle(.bordered)
                         }
                     }
 
+                    // MARK: - Loading
                     if isLoading {
                         Card {
                             ProgressView("Loading your dashboard...")
@@ -85,6 +99,7 @@ struct HomeView: View {
                         }
                     }
 
+                    // MARK: - Error
                     if let errorText {
                         Card {
                             Text(errorText)
@@ -93,13 +108,29 @@ struct HomeView: View {
                         }
                     }
 
+                    // MARK: - Summary
                     if let summary {
                         HStack(spacing: 12) {
-                            metricCard(title: "Income", amount: summary.total_income, color: AppTheme.income)
-                            metricCard(title: "Expenses", amount: summary.total_expenses, color: AppTheme.expense)
-                            metricCard(title: "Net", amount: summary.net, color: summary.net >= 0 ? AppTheme.income : AppTheme.danger)
+                            metricCard(
+                                title: "Income",
+                                amount: summary.total_income,
+                                color: AppTheme.income
+                            )
+
+                            metricCard(
+                                title: "Expenses",
+                                amount: summary.total_expenses,
+                                color: AppTheme.expense
+                            )
+
+                            metricCard(
+                                title: "Net",
+                                amount: summary.net,
+                                color: summary.net >= 0 ? AppTheme.income : AppTheme.danger
+                            )
                         }
 
+                        // MARK: - Over Budget
                         if !summary.over_budget.isEmpty {
                             Card {
                                 HStack(alignment: .top, spacing: 12) {
@@ -109,8 +140,10 @@ struct HomeView: View {
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text("Over budget")
                                             .font(.headline)
+
                                         Text("You’re over budget in:")
                                             .foregroundStyle(.secondary)
+
                                         WrapChips(items: summary.over_budget)
                                     }
                                 }
@@ -124,6 +157,7 @@ struct HomeView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("Budgets look good")
                                             .font(.headline)
+
                                         Text("No categories are over budget for \(prettyMonth(month)).")
                                             .foregroundStyle(.secondary)
                                     }
@@ -131,20 +165,26 @@ struct HomeView: View {
                             }
                         }
 
+                        // MARK: - Top Category
                         Card(title: "Top Spending Category") {
                             if let top = topCategory(summary.by_category) {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(top.name.capitalized)
                                             .font(.headline)
+
                                         Text("Spent this month")
                                             .foregroundStyle(.secondary)
                                             .font(.subheadline)
                                     }
+
                                     Spacer()
+
                                     Text(formatCurrency(top.amount))
                                         .font(.headline)
                                         .monospacedDigit()
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
                                 }
                             } else {
                                 Text("No spending data yet.")
@@ -167,12 +207,8 @@ struct HomeView: View {
                 .padding()
             }
             .navigationBarHidden(true)
-            .refreshable { await load() }
-            .task { await load() }
-            .onChange(of: month) { _, _ in
-                Task { await load() }
-            }
         }
+        .task { await load() }
         .sheet(isPresented: $showingAddTransaction) {
             AddTransactionView()
         }
@@ -183,6 +219,7 @@ struct HomeView: View {
         }
     }
 
+    // MARK: - Load
     private func load() async {
         isLoading = true
         errorText = nil
@@ -196,6 +233,7 @@ struct HomeView: View {
         isLoading = false
     }
 
+    // MARK: - Metric Card
     private func metricCard(title: String, amount: Double, color: Color) -> some View {
         Card {
             Text(title)
@@ -206,6 +244,8 @@ struct HomeView: View {
                 .font(.headline)
                 .bold()
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
 
             Rectangle()
                 .frame(height: 4)
@@ -215,7 +255,13 @@ struct HomeView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Top Category Logic
     private func topCategory(_ dict: [String: Double]) -> (name: String, amount: Double)? {
-        dict.max { a, b in a.value < b.value }.map { ($0.key, $0.value) }
+        let filtered = dict.filter { key, _ in
+            key.lowercased() != "income"
+        }
+
+        return filtered.max { a, b in a.value < b.value }
+            .map { ($0.key, $0.value) }
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 struct Card<Content: View>: View {
     let title: String?
@@ -15,6 +16,7 @@ struct Card<Content: View>: View {
                 Text(title)
                     .font(.headline)
             }
+
             content
         }
         .padding()
@@ -24,19 +26,14 @@ struct Card<Content: View>: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(.quaternary, lineWidth: 1)
         )
-        .shadow(radius: 2, y: 1)
     }
 }
 
-enum Currency {
-    static let formatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.maximumFractionDigits = 2
-        return f
-    }()
-}
-
 func formatCurrency(_ value: Double) -> String {
-    Currency.formatter.string(from: NSNumber(value: value)) ?? "$0.00"
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .currency
+    formatter.maximumFractionDigits = 2
+    formatter.minimumFractionDigits = 2
+    formatter.usesGroupingSeparator = true
+    return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
 }

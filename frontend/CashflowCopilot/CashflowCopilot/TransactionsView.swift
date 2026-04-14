@@ -10,8 +10,11 @@ struct TransactionsView: View {
 
     @State private var showingAddSheet = false
 
-    @State private var showingEditSheet = false
     @State private var selectedTransaction: TransactionItem?
+    @State private var showingEditSheet = false
+
+    @State private var transactionToDelete: TransactionItem?
+    @State private var showingDeleteAlert = false
 
     var body: some View {
         NavigationStack {
@@ -67,6 +70,7 @@ struct TransactionsView: View {
                         Card {
                             Text("No transactions found.")
                                 .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
@@ -76,9 +80,10 @@ struct TransactionsView: View {
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                                 .listRowBackground(Color.clear)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button(role: .destructive) {
-                                        Task { await delete(tx) }
+                                        transactionToDelete = tx
+                                        showingDeleteAlert = true
                                     } label: {
                                         Label("Delete", systemImage: "trash")
                                     }
@@ -101,13 +106,22 @@ struct TransactionsView: View {
             .navigationTitle("Transactions")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingAddSheet = true } label: {
+                    Button {
+                        showingAddSheet = true
+                    } label: {
                         Image(systemName: "plus")
                     }
                 }
+
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Refresh") {
+                        Task { await loadTransactions() }
+                    }
+                }
             }
-            .refreshable { await loadTransactions() }
-            .task { await loadTransactions() }
+            .refreshable {
+                await loadTransactions()
+            }
         }
         .sheet(isPresented: $showingAddSheet) {
             AddTransactionView()
@@ -119,20 +133,43 @@ struct TransactionsView: View {
                 }
             }
         }
+        .alert("Delete transaction?", isPresented: $showingDeleteAlert, presenting: transactionToDelete) { tx in
+            Button("Delete", role: .destructive) {
+                Task { await delete(tx) }
+            }
+
+            Button("Cancel", role: .cancel) {
+                transactionToDelete = nil
+            }
+        } message: { tx in
+            Text("Are you sure you want to delete “\(tx.description)”?")
+        }
+        .task {
+            await loadTransactions()
+        }
     }
 
     private var filteredTransactions: [TransactionItem] {
         var result = transactions
 
         switch filter {
-        case .all: break
-        case .income: result = result.filter { $0.amount >= 0 }
-        case .expenses: result = result.filter { $0.amount < 0 }
+        case .all:
+            break
+        case .income:
+            result = result.filter { $0.amount >= 0 }
+        case .expenses:
+            result = result.filter { $0.amount < 0 }
         }
 
-        let q = searchText.trimmed.lowercased()
-        if !q.isEmpty {
-            result = result.filter { $0.description.lowercased().contains(q) }
+        let query = searchText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        if !query.isEmpty {
+            result = result.filter {
+                $0.description.lowercased().contains(query) ||
+                $0.category.lowercased().contains(query)
+            }
         }
 
         return result
@@ -141,17 +178,20 @@ struct TransactionsView: View {
     private func loadTransactions() async {
         isLoading = true
         errorText = nil
+
         do {
             transactions = try await APIClient.shared.getTransactions()
         } catch {
             errorText = error.localizedDescription
         }
+
         isLoading = false
     }
 
     private func delete(_ tx: TransactionItem) async {
         do {
             try await APIClient.shared.deleteTransaction(id: tx.id)
+            transactionToDelete = nil
             await loadTransactions()
         } catch {
             errorText = error.localizedDescription

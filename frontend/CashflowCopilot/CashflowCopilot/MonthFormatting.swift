@@ -35,5 +35,18 @@ func UIMonth(_ yyyyMM: String) -> String {
 
 /// Compatibility helper (older code sometimes used prettyMonth)
 func prettyMonth(_ yyyyMM: String) -> String {
-    UIMonth(yyyyMM)
+    let parts = yyyyMM.split(separator: "-")
+    guard parts.count == 2 else { return yyyyMM }
+
+    let year = String(parts[0])
+    let monthNum = String(parts[1])
+
+    let formatter = DateFormatter()
+    formatter.dateFormat = "MM"
+    guard let date = formatter.date(from: monthNum) else { return yyyyMM }
+
+    formatter.dateFormat = "MMMM"
+    let monthName = formatter.string(from: date)
+
+    return "\(monthName) \(year)" // ✅ ONE LINE
 }

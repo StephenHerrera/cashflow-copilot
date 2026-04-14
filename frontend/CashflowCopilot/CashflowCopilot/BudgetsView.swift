@@ -12,31 +12,66 @@ struct BudgetsView: View {
     @State private var showEditSheet = false
 
     @State private var confirmDelete: BudgetItem?
+    @State private var showingDeleteAlert = false
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
+            List {
+                Section {
                     Card(title: "Month") {
-                        MonthPickerRow(selectedMonth: $selectedMonth, months: lastNMonthsOptions(12))
+                        MonthPickerRow(
+                            title: "Month",
+                            selectedMonth: $selectedMonth,
+                            months: lastNMonthsOptions(12),
+                            defaultMonth: currentMonthString()
+                        )
                     }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                }
 
-                    if isLoading {
-                        Card { ProgressView("Loading budgets...") }
+                if isLoading {
+                    Section {
+                        Card {
+                            ProgressView("Loading budgets...")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     }
+                }
 
-                    if let errorText {
-                        Card { Text(errorText).foregroundStyle(.red) }
+                if let errorText {
+                    Section {
+                        Card {
+                            Text(errorText)
+                                .foregroundStyle(.red)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     }
+                }
 
+                Section {
                     if budgets.isEmpty && !isLoading {
-                        Card { Text("No budgets set. Tap + to add one.").foregroundStyle(.secondary) }
+                        Card {
+                            Text("No budgets set. Tap + to add one.")
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     } else {
                         ForEach(budgets) { budget in
                             BudgetCard(budget: budget)
-                                .swipeActions {
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                                .listRowBackground(Color.clear)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button(role: .destructive) {
                                         confirmDelete = budget
+                                        showingDeleteAlert = true
                                     } label: {
                                         Label("Delete", systemImage: "trash")
                                     }
@@ -47,23 +82,31 @@ struct BudgetsView: View {
                                     } label: {
                                         Label("Edit", systemImage: "pencil")
                                     }
-                                    .tint(.blue)
+                                    .tint(AppTheme.primary)
                                 }
                         }
                     }
                 }
-                .padding()
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Budgets")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingAddBudget = true } label: {
+                    Button {
+                        showingAddBudget = true
+                    } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
-            .refreshable { await loadBudgets() }
-            .task { await loadBudgets() }
+            .refreshable {
+                await loadBudgets()
+            }
+            .task {
+                await loadBudgets()
+            }
             .onChange(of: selectedMonth) { _, _ in
                 Task { await loadBudgets() }
             }
@@ -74,23 +117,21 @@ struct BudgetsView: View {
             }
             .sheet(isPresented: $showEditSheet) {
                 if let editingBudget {
-                    EditBudgetView(budget: editingBudget) {
+                    EditBudgetsView(budget: editingBudget) {
                         Task { await loadBudgets() }
                     }
                 }
             }
-            .alert("Delete budget?", isPresented: .constant(confirmDelete != nil)) {
+            .alert("Delete budget?", isPresented: $showingDeleteAlert, presenting: confirmDelete) { budget in
                 Button("Delete", role: .destructive) {
-                    if let b = confirmDelete {
-                        Task { await deleteBudget(b) }
-                    }
-                    confirmDelete = nil
+                    Task { await deleteBudget(budget) }
                 }
+
                 Button("Cancel", role: .cancel) {
                     confirmDelete = nil
                 }
-            } message: {
-                Text("This cannot be undone.")
+            } message: { budget in
+                Text("Are you sure you want to delete the \(budget.category.capitalized) budget for \(prettyMonth(budget.month))?")
             }
         }
     }
@@ -98,17 +139,20 @@ struct BudgetsView: View {
     private func loadBudgets() async {
         isLoading = true
         errorText = nil
+
         do {
             budgets = try await APIClient.shared.getBudgets(month: selectedMonth)
         } catch {
             errorText = error.localizedDescription
         }
+
         isLoading = false
     }
 
     private func deleteBudget(_ budget: BudgetItem) async {
         do {
             try await APIClient.shared.deleteBudget(id: budget.id)
+            confirmDelete = nil
             await loadBudgets()
         } catch {
             errorText = error.localizedDescription

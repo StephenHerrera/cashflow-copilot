@@ -1,59 +1,60 @@
 import SwiftUI
 
-struct EditBudgetView: View {
+struct EditBudgetsView: View {
     let budget: BudgetItem
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var category: String
-    @State private var limitText: String
-    @State private var month: String
+    @State private var monthText: String = ""
+    @State private var categoryText: String = ""
+    @State private var limitText: String = ""
 
     @State private var isSaving = false
     @State private var errorText: String?
 
-    init(budget: BudgetItem, onSaved: @escaping () -> Void) {
-        self.budget = budget
-        self.onSaved = onSaved
-        _category = State(initialValue: budget.category)
-        _limitText = State(initialValue: String(budget.limit_amount))
-        _month = State(initialValue: budget.month)
-    }
-
     var body: some View {
         NavigationStack {
             Form {
-                Section("Budget") {
-                    TextField("Category", text: $category)
+                Section("Budget Details") {
+                    TextField("Month (YYYY-MM)", text: $monthText)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
 
-                    TextField("Limit", text: $limitText)
-                        .keyboardType(.decimalPad)
+                    TextField("Category", text: $categoryText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
 
-                    Picker("Month", selection: $month) {
-                        ForEach(lastNMonthsOptions(12), id: \.self) { m in
-                            Text(prettyMonth(m)).tag(m)
-                        }
-                    }
+                    TextField("Limit Amount", text: $limitText)
+                        .keyboardType(.decimalPad)
                 }
 
                 if let errorText {
-                    Section { Text(errorText).foregroundStyle(.red) }
+                    Section {
+                        Text(errorText)
+                            .foregroundStyle(.red)
+                    }
                 }
             }
             .navigationTitle("Edit Budget")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-                ToolbarItem(placement: .confirmationAction) {
+
+                ToolbarItem(placement: .topBarTrailing) {
                     Button(isSaving ? "Saving..." : "Save") {
                         Task { await save() }
                     }
                     .disabled(isSaving)
                 }
+            }
+            .onAppear {
+                monthText = budget.month
+                categoryText = budget.category
+                limitText = String(budget.limit_amount)
             }
         }
     }
@@ -61,29 +62,27 @@ struct EditBudgetView: View {
     private func save() async {
         errorText = nil
 
-        if category.trimmed.isEmpty {
-            errorText = "Category is required."
-            return
-        }
-
-        guard let limitAmount = Double(limitText.trimmed) else {
-            errorText = "Limit must be a number."
+        guard let limitValue = Double(limitText) else {
+            errorText = "Limit must be a valid number."
             return
         }
 
         isSaving = true
+
+        let request = UpdateBudgetRequest(
+            month: monthText,
+            category: categoryText,
+            limit_amount: limitValue
+        )
+
         do {
-            let req = UpdateBudgetRequest(
-                month: month,
-                category: category.trimmed.lowercased(),
-                limit_amount: limitAmount
-            )
-            try await APIClient.shared.updateBudget(id: budget.id, request: req)
+            try await APIClient.shared.updateBudget(id: budget.id, request: request)
             onSaved()
             dismiss()
         } catch {
             errorText = error.localizedDescription
         }
+
         isSaving = false
     }
 }
