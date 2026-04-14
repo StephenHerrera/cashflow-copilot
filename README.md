@@ -78,17 +78,13 @@ The backend handles validation, logic, and data persistence, while the frontend 
 
 ## 📸 Screenshots
 
-### 🏠 Home Dashboard
-![Home](docs/screenshots/home-dashboard.png)
+| Home Dashboard | Transactions |
+|----------------|--------------|
+| <img src="docs/screenshots/home-dashboard.png" width="250"/> | <img src="docs/screenshots/transactions-list.png" width="250"/> |
 
-### 💳 Transactions
-![Transactions](docs/screenshots/transactions-list.png)
-
-### 📈 Summary
-![Summary](docs/screenshots/summary-overview.png)
-
-### 🎯 Budgets (Edit View)
-![Budgets](docs/screenshots/edit-budget.png)
+| Summary | Budgets |
+|---------|---------|
+| <img src="docs/screenshots/summary-overview.png" width="250"/> | <img src="docs/screenshots/edit-budget.png" width="250"/> |
 
 ---
 
