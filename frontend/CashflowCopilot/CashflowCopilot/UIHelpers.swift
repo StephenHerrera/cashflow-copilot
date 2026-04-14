@@ -1,13 +1,6 @@
-//
-//  UIHelpers.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
-
 import SwiftUI
+import Foundation
 
-// Reusable "card" container
 struct Card<Content: View>: View {
     let title: String?
     let content: Content
@@ -23,6 +16,7 @@ struct Card<Content: View>: View {
                 Text(title)
                     .font(.headline)
             }
+
             content
         }
         .padding()
@@ -35,10 +29,11 @@ struct Card<Content: View>: View {
     }
 }
 
-// Currency formatting helper
 func formatCurrency(_ value: Double) -> String {
     let formatter = NumberFormatter()
     formatter.numberStyle = .currency
     formatter.maximumFractionDigits = 2
+    formatter.minimumFractionDigits = 2
+    formatter.usesGroupingSeparator = true
     return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
 }

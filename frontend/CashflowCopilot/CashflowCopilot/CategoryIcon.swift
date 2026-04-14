@@ -1,10 +1,3 @@
-//
-//  CategoryIcon.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
-
 import SwiftUI
 
 func iconForCategory(_ category: String) -> String {
@@ -14,8 +7,10 @@ func iconForCategory(_ category: String) -> String {
     if c.contains("grocer") { return "cart.fill" }
     if c.contains("rent") { return "house.fill" }
     if c.contains("util") { return "bolt.fill" }
-    if c.contains("transport") { return "car.fill" }
-    if c.contains("food") { return "fork.knife" }
+    if c.contains("transport") || c.contains("gas") { return "car.fill" }
+    if c.contains("food") || c.contains("dining") { return "fork.knife" }
+    if c.contains("salary") || c.contains("pay") { return "banknote.fill" }
+    if c.contains("fun") || c.contains("entertain") { return "party.popper.fill" }
 
     return "tag.fill"
 }

@@ -1,18 +1,16 @@
-//
-//  Models.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/4/26.
-//
 import Foundation
+
+// MARK: - Transactions
 
 struct TransactionItem: Codable, Identifiable {
     let id: Int
     let amount: Double
     let description: String
     let category: String
-    let date: String   // keep as String for now (we’ll parse later)
+    let date: String // "YYYY-MM-DD"
 }
+
+// MARK: - Summary
 
 struct SummaryResponse: Codable {
     let total_income: Double
@@ -32,14 +30,7 @@ struct BudgetStatus: Codable {
     let percentage_used: Double
 }
 
-struct TrendItem: Codable, Identifiable {
-    let month: String
-    let income: Double
-    let expenses: Double
-    let net: Double
-
-    var id: String { month }
-}
+// MARK: - Budgets
 
 struct BudgetItem: Codable, Identifiable {
     let id: Int
@@ -48,11 +39,7 @@ struct BudgetItem: Codable, Identifiable {
     let limit_amount: Double
 }
 
-struct CreateBudgetRequest: Codable {
-    let month: String
-    let category: String
-    let limit_amount: Double
-}
+// MARK: - Trend
 
 struct TrendRow: Codable, Identifiable {
     var id: String { month }
@@ -60,4 +47,12 @@ struct TrendRow: Codable, Identifiable {
     let income: Double
     let expenses: Double
     let net: Double
+}
+
+// MARK: - Requests
+
+struct CreateBudgetRequest: Codable {
+    let month: String
+    let category: String
+    let limit_amount: Double
 }

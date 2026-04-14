@@ -1,11 +1,5 @@
-//
-//  TrendView.swift
-//  CashflowCopilot
-//
-//  Created by Stephen Herrera on 2/5/26.
-//
-
 import SwiftUI
+import Charts
 
 struct TrendView: View {
     @State private var monthsToShow: Int = 6
@@ -18,13 +12,11 @@ struct TrendView: View {
             ScrollView {
                 VStack(spacing: 16) {
 
-                    // Dropdown controls
                     Card(title: "Range") {
                         HStack {
                             Text("Show")
                                 .foregroundStyle(.secondary)
                             Spacer()
-
                             Picker("Months", selection: $monthsToShow) {
                                 Text("3 months").tag(3)
                                 Text("6 months").tag(6)
@@ -55,6 +47,11 @@ struct TrendView: View {
                         }
                     }
 
+                    if !rows.isEmpty {
+                        NetLineChartCard(rows: rows)
+                        IncomeExpenseBarChartCard(rows: rows)
+                    }
+
                     if rows.isEmpty && !isLoading {
                         Card {
                             Text("No trend data yet.")
@@ -69,6 +66,7 @@ struct TrendView: View {
                 .padding()
             }
             .navigationTitle("Trend")
+            .refreshable { await load() }
             .task { await load() }
             .onChange(of: monthsToShow) { _, _ in
                 Task { await load() }
@@ -90,13 +88,73 @@ struct TrendView: View {
     }
 }
 
+struct NetLineChartCard: View {
+    let rows: [TrendRow]
+
+    var body: some View {
+        Card(title: "Net Trend") {
+            Chart(rows) { r in
+                LineMark(
+                    x: .value("Month", prettyMonth(r.month)),
+                    y: .value("Net", r.net)
+                )
+                .interpolationMethod(.catmullRom)
+
+                PointMark(
+                    x: .value("Month", prettyMonth(r.month)),
+                    y: .value("Net", r.net)
+                )
+            }
+            .frame(height: 190)
+            .chartYAxis { AxisMarks(position: .leading) }
+
+            let totalNet = rows.reduce(0) { $0 + $1.net }
+            HStack {
+                Text("Total net (\(rows.count) mo)")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(formatCurrency(totalNet))
+                    .bold()
+                    .monospacedDigit()
+                    .foregroundStyle(totalNet >= 0 ? AppTheme.income : AppTheme.danger)
+            }
+            .padding(.top, 8)
+        }
+    }
+}
+
+struct IncomeExpenseBarChartCard: View {
+    let rows: [TrendRow]
+
+    var body: some View {
+        Card(title: "Income vs Expenses") {
+            Chart(rows) { r in
+                BarMark(
+                    x: .value("Month", prettyMonth(r.month)),
+                    y: .value("Income", r.income)
+                )
+                .foregroundStyle(AppTheme.income)
+
+                BarMark(
+                    x: .value("Month", prettyMonth(r.month)),
+                    y: .value("Expenses", abs(r.expenses))
+                )
+                .foregroundStyle(AppTheme.expense)
+            }
+            .frame(height: 220)
+            .chartYAxis { AxisMarks(position: .leading) }
+            .chartLegend(position: .bottom, alignment: .leading)
+        }
+    }
+}
+
 struct TrendRowCard: View {
     let row: TrendRow
 
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
-                Text(UIMonth(row.month))
+                Text(prettyMonth(row.month))
                     .font(.headline)
 
                 HStack {
